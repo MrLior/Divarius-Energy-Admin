@@ -2,8 +2,6 @@
 
 
 
-Solar Designer IL — מדריך קצר
-
 גרסה: 0.2.0
 תאימות יעד: SketchUp Desktop 2021–2026 ב־Windows וב־macOS.
 
