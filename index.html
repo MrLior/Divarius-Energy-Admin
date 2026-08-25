@@ -93,7 +93,7 @@
             </div>
             <form id="license-create-form" class="compact-form" novalidate>
               <label>שם / הערה
-                <input id="new-license-label" maxlength="120" placeholder="לדוגמה: פרויקט ירושלים">
+                <input id="new-license-label" maxlength="120">
               </label>
               <label>תוקף עד
                 <input id="new-license-expiry" type="date" required>
@@ -116,6 +116,7 @@
               <button class="button secondary" type="submit">שמור קישור</button>
             </form>
           </section>
+
         </div>
 
         <section class="card licenses-card">
@@ -126,6 +127,17 @@
             </div>
             <button id="refresh-button" class="button ghost" type="button">רענון</button>
           </div>
+          <form id="license-search-form" class="license-search-form" novalidate>
+            <label>שם או חלק מהמפתח
+              <input id="license-search-query" maxlength="120" autocomplete="off" placeholder="חיפוש לפי שם או חלק מהמפתח">
+            </label>
+            <label>תאריך יצירה או תוקף
+              <input id="license-search-date" type="date">
+            </label>
+            <button id="license-search-button" class="button secondary" type="submit">חפש</button>
+            <button id="clear-license-search" class="button ghost" type="button">נקה</button>
+          </form>
+          <p id="search-results-summary" class="search-summary" hidden></p>
           <div class="table-wrap">
             <table>
               <thead>
@@ -162,11 +174,40 @@
       <form method="dialog">
         <p class="eyebrow">מפתח חדש</p>
         <h2>העתק ושמור אותו עכשיו</h2>
-        <p class="muted">מטעמי אבטחה, לא ניתן יהיה להציג את המפתח המלא שוב.</p>
+        <p class="muted">המפתח נשמר מוצפן בשרת. ניתן יהיה להציג אותו שוב רק מתוך חשבון מנהל שעבר אימות דו־שלבי.</p>
         <code id="new-key-value" class="license-key"></code>
         <div class="dialog-actions">
           <button id="copy-new-key" class="button secondary" type="button">העתק</button>
           <button class="button primary" value="close">סיימתי לשמור</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="reveal-key-dialog" class="dialog">
+      <form method="dialog">
+        <p class="eyebrow">תצוגה מאובטחת</p>
+        <h2 id="revealed-key-title">המפתח המלא</h2>
+        <p class="muted">המפתח פוענח רק לבקשה הזו. החלון ינקה אותו מיד עם הסגירה.</p>
+        <code id="revealed-key-value" class="license-key"></code>
+        <div class="dialog-actions">
+          <button id="copy-revealed-key" class="button secondary" type="button">העתק</button>
+          <button class="button primary" value="close">סגור</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="store-key-dialog" class="dialog">
+      <form id="store-existing-key-form" method="dialog" novalidate>
+        <p class="eyebrow">מפתח שנוצר לפני העדכון</p>
+        <h2>שמור את המפתח הקיים</h2>
+        <p class="muted">הזן את העותק המלא של <strong id="store-key-license-name">הרישיון</strong>. השרת יוודא שהוא תואם ל־hash הקיים ויצפין אותו בלי להחליף את המפתח, לנתק מכשיר או לשנות את שיוך האימייל.</p>
+        <input id="store-key-license-id" type="hidden">
+        <label>המפתח המלא
+          <input id="store-existing-key-value" class="full-key-input" autocomplete="off" spellcheck="false" required placeholder="DIV-…">
+        </label>
+        <div class="dialog-actions">
+          <button class="button ghost" value="cancel">ביטול</button>
+          <button class="button primary" value="save">בדוק ושמור מוצפן</button>
         </div>
       </form>
     </dialog>

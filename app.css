@@ -52,7 +52,7 @@ input:focus, select:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgb
 
 .button { min-height: 40px; padding: 9px 15px; border: 1px solid transparent; border-radius: 10px; cursor: pointer; color: var(--text); font-weight: 700; transition: transform .16s ease, opacity .16s ease, background .16s ease; }
 .button:hover { transform: translateY(-1px); }
-.button:disabled { opacity: .55; cursor: wait; transform: none; }
+.button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
 .primary { color: #06201d; background: linear-gradient(135deg, var(--cyan), var(--green)); }
 .secondary { border-color: rgba(79, 215, 210, .6); color: #bafcf7; background: rgba(28, 113, 115, .24); }
 .ghost { border-color: var(--line); background: rgba(255, 255, 255, .04); }
@@ -79,12 +79,17 @@ input:focus, select:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgb
 .compact-form { display: grid; grid-template-columns: 1fr 180px auto; align-items: end; gap: 12px; margin-top: 19px; }
 .settings-card .compact-form { grid-template-columns: 1fr auto; }
 .licenses-card { margin-bottom: 16px; }
+.license-search-form { display: grid; grid-template-columns: minmax(230px, 1fr) minmax(180px, .45fr) auto auto; align-items: end; gap: 12px; margin: 20px 0 8px; }
+.search-summary { margin: 10px 0 5px; color: var(--cyan); font-size: .84rem; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; min-width: 850px; border-collapse: collapse; text-align: right; }
 th, td { padding: 13px 10px; border-bottom: 1px solid rgba(151, 213, 221, .12); vertical-align: middle; }
 th { color: var(--muted); font-size: .76rem; font-weight: 600; }
 td { font-size: .88rem; }
 .license-hint { direction: ltr; color: #bdfaf2; font-family: Consolas, monospace; }
+.key-cell { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.key-unavailable { max-width: 145px; color: var(--muted); font-size: .73rem; line-height: 1.35; }
+.reveal-button { white-space: nowrap; }
 .badge { display: inline-block; padding: 5px 8px; border-radius: 999px; font-size: .76rem; font-weight: 700; white-space: nowrap; }
 .badge.active { color: #073719; background: #8aeab0; }
 .badge.expired { color: #4a180d; background: #ffc48d; }
@@ -102,6 +107,7 @@ td { font-size: .88rem; }
 .dialog form { display: grid; gap: 15px; }
 .dialog h2 { margin: 4px 0 0; }
 .license-key { display: block; padding: 16px; border: 1px dashed rgba(126, 249, 224, .6); border-radius: 11px; direction: ltr; text-align: center; color: #c9fff5; font-size: 1.05rem; font-weight: 700; letter-spacing: .07em; overflow-wrap: anywhere; }
+.full-key-input { direction: ltr; text-align: left; font-family: Consolas, monospace; }
 .dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 10px; margin-top: 2px; }
 .danger-zone { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 7px; padding-top: 17px; border-top: 1px solid rgba(255, 160, 160, .22); }
 
@@ -110,6 +116,6 @@ td { font-size: .88rem; }
   .dashboard-top, .section-heading { align-items: stretch; flex-direction: column; }
   .dashboard-top > .button, .licenses-heading > .button { align-self: flex-start; }
   .stats, .dashboard-grid { grid-template-columns: 1fr; }
-  .compact-form, .settings-card .compact-form { grid-template-columns: 1fr; }
+  .compact-form, .settings-card .compact-form, .license-search-form { grid-template-columns: 1fr; }
   .auth-card { margin-top: 4vh; padding: 25px 20px; }
 }

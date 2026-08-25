@@ -10,6 +10,7 @@
     enrollment: null,
     factorId: null,
     licenses: new Map(),
+    licenseList: [],
     settings: { renewal_url: '' }
   };
 
@@ -182,11 +183,15 @@
       showView('view-loading');
       var data = await api('admin_bootstrap');
       state.settings = data.settings || { renewal_url: '' };
-      state.licenses = new Map((data.licenses || []).map(function (license) { return [license.id, license]; }));
+      state.licenseList = data.licenses || [];
+      state.licenses = new Map(state.licenseList.map(function (license) { return [license.id, license]; }));
       document.getElementById('admin-welcome').textContent = 'מחובר כ־' + (data.admin.display_name || data.admin.username || 'מנהל');
       document.getElementById('renewal-url').value = state.settings.renewal_url || '';
-      renderStats(data.licenses || []);
-      renderLicenses(data.licenses || []);
+      document.getElementById('license-search-query').value = '';
+      document.getElementById('license-search-date').value = '';
+      document.getElementById('search-results-summary').hidden = true;
+      renderStats(state.licenseList);
+      renderLicenses(state.licenseList, false);
       renderAudit(data.events || []);
       showView('view-dashboard');
     } catch (error) {
@@ -220,17 +225,22 @@
     return 'מושבת';
   }
 
-  function renderLicenses(licenses) {
+  function renderLicenses(licenses, searchActive) {
     var body = document.getElementById('licenses-body');
     var empty = document.getElementById('licenses-empty');
     empty.hidden = licenses.length !== 0;
+    empty.textContent = searchActive ? 'לא נמצאו רישיונות שמתאימים לחיפוש.' : 'עדיין לא נוצרו מפתחות.';
     body.innerHTML = licenses.map(function (license) {
       var device = license.device_active
         ? '<span class="device-active">מחובר</span>'
         : '<span class="device-none">לא מחובר</span>';
+      var reveal = license.key_revealable
+        ? '<button class="button ghost row-button reveal-button" type="button" data-reveal-license="' + escapeHtml(license.id) + '">הצג מלא</button>'
+        : '<button class="button ghost row-button" type="button" data-store-existing-key="' + escapeHtml(license.id) + '">שמור מפתח קיים</button>' +
+          '<span class="key-unavailable">אם העותק המלא אבד, יש להחליף את המפתח</span>';
       return '<tr>' +
         '<td>' + escapeHtml(license.label || '—') + '</td>' +
-        '<td><code class="license-hint">' + escapeHtml(license.key_hint || '—') + '</code></td>' +
+        '<td><div class="key-cell"><code class="license-hint">' + escapeHtml(license.key_hint || '—') + '</code>' + reveal + '</div></td>' +
         '<td><span class="badge ' + escapeHtml(license.effective_status) + '">' + statusLabel(license.effective_status) + '</span></td>' +
         '<td>' + escapeHtml(localDate(license.expires_at)) + '</td>' +
         '<td>' + escapeHtml(license.bound_email || '—') + '</td>' +
@@ -254,6 +264,30 @@
     document.getElementById('new-key-dialog').showModal();
   }
 
+  function showRevealedKey(key, license) {
+    document.getElementById('revealed-key-title').textContent = license && license.label
+      ? 'המפתח של ' + license.label
+      : 'המפתח המלא';
+    document.getElementById('revealed-key-value').textContent = key;
+    document.getElementById('reveal-key-dialog').showModal();
+  }
+
+  function clearLicenseSearch() {
+    document.getElementById('license-search-query').value = '';
+    document.getElementById('license-search-date').value = '';
+    document.getElementById('search-results-summary').hidden = true;
+    renderLicenses(state.licenseList, false);
+  }
+
+  function openStoreExistingKey(licenseId) {
+    var license = state.licenses.get(licenseId);
+    if (!license) return;
+    document.getElementById('store-key-license-id').value = license.id;
+    document.getElementById('store-key-license-name').textContent = license.label || license.key_hint || 'הרישיון';
+    document.getElementById('store-existing-key-value').value = '';
+    document.getElementById('store-key-dialog').showModal();
+  }
+
   function openEdit(licenseId) {
     var license = state.licenses.get(licenseId);
     if (!license) return;
@@ -271,6 +305,8 @@
     state.enrollment = null;
     state.factorId = null;
     state.licenses.clear();
+    state.licenseList = [];
+    document.getElementById('revealed-key-value').textContent = '';
     showView('view-login');
   }
 
@@ -364,9 +400,55 @@
 
   document.getElementById('refresh-button').addEventListener('click', loadDashboard);
 
-  document.getElementById('licenses-body').addEventListener('click', function (event) {
-    var button = event.target.closest('[data-edit-license]');
-    if (button) openEdit(button.dataset.editLicense);
+  document.getElementById('license-search-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    var button = event.submitter || document.getElementById('license-search-button');
+    var query = document.getElementById('license-search-query').value.trim();
+    var date = document.getElementById('license-search-date').value;
+    if (!query && !date) {
+      clearLicenseSearch();
+      return;
+    }
+    try {
+      setBusy(button, true, 'מחפש…');
+      var response = await api('admin_search_licenses', { query: query, date: date });
+      var matches = new Set(response.license_ids || []);
+      var filtered = state.licenseList.filter(function (license) { return matches.has(license.id); });
+      var summary = document.getElementById('search-results-summary');
+      summary.textContent = 'נמצאו ' + filtered.length + ' מתוך ' + state.licenseList.length + ' רישיונות';
+      summary.hidden = false;
+      renderLicenses(filtered, true);
+    } catch (error) {
+      showError(error.message || 'לא ניתן לבצע את החיפוש.');
+    } finally {
+      setBusy(button, false);
+    }
+  });
+
+  document.getElementById('clear-license-search').addEventListener('click', clearLicenseSearch);
+
+  document.getElementById('licenses-body').addEventListener('click', async function (event) {
+    var storeButton = event.target.closest('[data-store-existing-key]');
+    if (storeButton) {
+      openStoreExistingKey(storeButton.dataset.storeExistingKey);
+      return;
+    }
+    var revealButton = event.target.closest('[data-reveal-license]');
+    if (revealButton) {
+      var licenseId = revealButton.dataset.revealLicense;
+      try {
+        setBusy(revealButton, true, 'פותח…');
+        var response = await api('admin_reveal_license_key', { license_id: licenseId });
+        showRevealedKey(response.license_key, state.licenses.get(licenseId));
+      } catch (error) {
+        showError(error.message || 'לא ניתן להציג את המפתח.');
+      } finally {
+        setBusy(revealButton, false);
+      }
+      return;
+    }
+    var editButton = event.target.closest('[data-edit-license]');
+    if (editButton) openEdit(editButton.dataset.editLicense);
   });
 
   document.getElementById('license-edit-form').addEventListener('submit', async function (event) {
@@ -387,6 +469,30 @@
       await loadDashboard();
     } catch (error) {
       showError(error.message || 'לא ניתן לעדכן את הרישיון.');
+    } finally {
+      setBusy(button, false);
+    }
+  });
+
+  document.getElementById('store-existing-key-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    if (event.submitter && event.submitter.value !== 'save') {
+      document.getElementById('store-key-dialog').close();
+      return;
+    }
+    var button = event.submitter;
+    var valueInput = document.getElementById('store-existing-key-value');
+    try {
+      setBusy(button, true, 'בודק ושומר…');
+      await api('admin_store_existing_license_key', {
+        license_id: document.getElementById('store-key-license-id').value,
+        license_key: valueInput.value.trim()
+      });
+      valueInput.value = '';
+      document.getElementById('store-key-dialog').close();
+      await loadDashboard();
+    } catch (error) {
+      showError(error.message || 'לא ניתן לשמור את המפתח הקיים.');
     } finally {
       setBusy(button, false);
     }
@@ -447,6 +553,25 @@
     } catch (_) {
       showError('לא ניתן להעתיק אוטומטית. סמן את המפתח והעתק ידנית.');
     }
+  });
+
+  document.getElementById('copy-revealed-key').addEventListener('click', async function (event) {
+    try {
+      await navigator.clipboard.writeText(document.getElementById('revealed-key-value').textContent);
+      var button = event.currentTarget;
+      button.textContent = 'הועתק';
+      window.setTimeout(function () { button.textContent = 'העתק'; }, 1500);
+    } catch (_) {
+      showError('לא ניתן להעתיק אוטומטית. סמן את המפתח והעתק ידנית.');
+    }
+  });
+
+  document.getElementById('reveal-key-dialog').addEventListener('close', function () {
+    document.getElementById('revealed-key-value').textContent = '';
+  });
+
+  document.getElementById('store-key-dialog').addEventListener('close', function () {
+    document.getElementById('store-existing-key-value').value = '';
   });
 
   document.querySelectorAll('[data-signout]').forEach(function (button) {
