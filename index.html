@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Divarius Energy | ניהול רישיונות</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="stylesheet" href="./app.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="brand" aria-label="Divarius Energy">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <span>
+          <strong>Divarius</strong>
+          <small>ENERGY</small>
+        </span>
+      </header>
+
+      <p id="global-message" class="global-message" hidden role="alert"></p>
+
+      <section id="view-loading" class="card center-card">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>טוען את מערכת הניהול…</p>
+      </section>
+
+      <section id="view-login" class="card auth-card" hidden>
+        <p class="eyebrow">ניהול רישיונות</p>
+        <h1>כניסה מאובטחת</h1>
+        <p class="muted">שם משתמש, סיסמה ואימות דו־שלבי.</p>
+        <form id="login-form" novalidate>
+          <label>שם משתמש
+            <input id="login-username" autocomplete="username" minlength="3" maxlength="64" required>
+          </label>
+          <label>סיסמה
+            <input id="login-password" type="password" autocomplete="current-password" required>
+          </label>
+          <button class="button primary" type="submit">כניסה</button>
+        </form>
+      </section>
+
+      <section id="view-mfa-enroll" class="card auth-card" hidden>
+        <p class="eyebrow">אבטחת מנהל</p>
+        <h1>הגדרת אימות דו־שלבי</h1>
+        <p class="muted">סרוק את קוד ה־QR באפליקציית מאמת, למשל Google Authenticator או Microsoft Authenticator.</p>
+        <img id="mfa-qr" class="mfa-qr" alt="קוד QR להגדרת אימות דו־שלבי">
+        <details class="totp-secret">
+          <summary>לא מצליח לסרוק?</summary>
+          <code id="mfa-secret"></code>
+        </details>
+        <form id="mfa-enroll-form" novalidate>
+          <label>קוד בן 6 ספרות
+            <input id="mfa-enroll-code" class="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+          </label>
+          <button class="button primary" type="submit">אמת והפעל</button>
+        </form>
+        <button class="button text" type="button" data-signout>יציאה</button>
+      </section>
+
+      <section id="view-mfa-challenge" class="card auth-card" hidden>
+        <p class="eyebrow">אבטחת מנהל</p>
+        <h1>אימות דו־שלבי</h1>
+        <p class="muted">הזן את הקוד הנוכחי מהאפליקציה שלך.</p>
+        <form id="mfa-challenge-form" novalidate>
+          <label>קוד בן 6 ספרות
+            <input id="mfa-challenge-code" class="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+          </label>
+          <button class="button primary" type="submit">אימות</button>
+        </form>
+        <button class="button text" type="button" data-signout>יציאה</button>
+      </section>
+
+      <section id="view-dashboard" hidden>
+        <div class="dashboard-top">
+          <div>
+            <p class="eyebrow">Divarius Energy</p>
+            <h1>ניהול רישיונות</h1>
+            <p id="admin-welcome" class="muted"></p>
+          </div>
+          <button class="button secondary" type="button" data-signout>יציאה</button>
+        </div>
+
+        <div id="license-stats" class="stats" aria-live="polite"></div>
+
+        <div class="dashboard-grid">
+          <section class="card license-create">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">רישיון חדש</p>
+                <h2>יצירת מפתח</h2>
+              </div>
+            </div>
+            <form id="license-create-form" class="compact-form" novalidate>
+              <label>שם / הערה
+                <input id="new-license-label" maxlength="120" placeholder="לדוגמה: פרויקט ירושלים">
+              </label>
+              <label>תוקף עד
+                <input id="new-license-expiry" type="date" required>
+              </label>
+              <button class="button primary" type="submit">צור מפתח</button>
+            </form>
+          </section>
+
+          <section class="card settings-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">חידוש רישיון</p>
+                <h2>קישור לתשלום</h2>
+              </div>
+            </div>
+            <form id="settings-form" class="compact-form" novalidate>
+              <label>קישור שיוצג אחרי סיום תוקף
+                <input id="renewal-url" type="url" inputmode="url" placeholder="https://…">
+              </label>
+              <button class="button secondary" type="submit">שמור קישור</button>
+            </form>
+          </section>
+        </div>
+
+        <section class="card licenses-card">
+          <div class="section-heading licenses-heading">
+            <div>
+              <p class="eyebrow">מפתחות</p>
+              <h2>רישיונות קיימים</h2>
+            </div>
+            <button id="refresh-button" class="button ghost" type="button">רענון</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>שם</th>
+                  <th>מפתח</th>
+                  <th>סטטוס</th>
+                  <th>תוקף</th>
+                  <th>אימייל משויך</th>
+                  <th>מכשיר</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="licenses-body"></tbody>
+            </table>
+          </div>
+          <p id="licenses-empty" class="empty-state" hidden>עדיין לא נוצרו מפתחות.</p>
+        </section>
+
+        <section class="card audit-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">בקרה</p>
+              <h2>אירועים אחרונים</h2>
+            </div>
+          </div>
+          <ul id="audit-list" class="audit-list"></ul>
+          <p id="audit-empty" class="empty-state" hidden>אין אירועים להצגה.</p>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="new-key-dialog" class="dialog">
+      <form method="dialog">
+        <p class="eyebrow">מפתח חדש</p>
+        <h2>העתק ושמור אותו עכשיו</h2>
+        <p class="muted">מטעמי אבטחה, לא ניתן יהיה להציג את המפתח המלא שוב.</p>
+        <code id="new-key-value" class="license-key"></code>
+        <div class="dialog-actions">
+          <button id="copy-new-key" class="button secondary" type="button">העתק</button>
+          <button class="button primary" value="close">סיימתי לשמור</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="edit-license-dialog" class="dialog edit-dialog">
+      <form id="license-edit-form" method="dialog" novalidate>
+        <p class="eyebrow">ניהול מפתח</p>
+        <h2 id="edit-license-title">עריכת רישיון</h2>
+        <input id="edit-license-id" type="hidden">
+        <label>שם / הערה
+          <input id="edit-license-label" maxlength="120">
+        </label>
+        <label>תוקף עד
+          <input id="edit-license-expiry" type="date" required>
+        </label>
+        <label>סטטוס
+          <select id="edit-license-status">
+            <option value="active">פעיל</option>
+            <option value="disabled">מושבת</option>
+          </select>
+        </label>
+        <div class="dialog-actions">
+          <button id="edit-disconnect" class="button ghost" type="button">נתק מכשיר</button>
+          <button class="button primary" value="save">שמור שינויים</button>
+        </div>
+        <div class="danger-zone">
+          <button id="edit-reset-key" class="button warning" type="button">החלף מפתח</button>
+          <button id="edit-delete-license" class="button danger" type="button">מחק רישיון</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
