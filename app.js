@@ -43,6 +43,50 @@
     }
   }
 
+  async function copyText(value) {
+    var text = String(value || '');
+    if (!text) return false;
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function' && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (_) {
+        // Some browsers copy the value but still reject the Clipboard promise.
+        // Fall back to the older selection-based copy method before reporting
+        // an error to the administrator.
+      }
+    }
+
+    var textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.setAttribute('readonly', '');
+    textArea.setAttribute('aria-hidden', 'true');
+    textArea.style.position = 'fixed';
+    textArea.style.top = '-1000px';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    textArea.setSelectionRange(0, text.length);
+
+    var copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } catch (_) {
+      copied = false;
+    } finally {
+      document.body.removeChild(textArea);
+    }
+    return copied;
+  }
+
+  function showCopied(button) {
+    clearError();
+    button.textContent = 'הועתק';
+    window.setTimeout(function () { button.textContent = 'העתק'; }, 1500);
+  }
+
   function escapeHtml(value) {
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -545,23 +589,19 @@
   });
 
   document.getElementById('copy-new-key').addEventListener('click', async function (event) {
-    try {
-      await navigator.clipboard.writeText(document.getElementById('new-key-value').textContent);
-      var button = event.currentTarget;
-      button.textContent = 'הועתק';
-      window.setTimeout(function () { button.textContent = 'העתק'; }, 1500);
-    } catch (_) {
+    var copied = await copyText(document.getElementById('new-key-value').textContent);
+    if (copied) {
+      showCopied(event.currentTarget);
+    } else {
       showError('לא ניתן להעתיק אוטומטית. סמן את המפתח והעתק ידנית.');
     }
   });
 
   document.getElementById('copy-revealed-key').addEventListener('click', async function (event) {
-    try {
-      await navigator.clipboard.writeText(document.getElementById('revealed-key-value').textContent);
-      var button = event.currentTarget;
-      button.textContent = 'הועתק';
-      window.setTimeout(function () { button.textContent = 'העתק'; }, 1500);
-    } catch (_) {
+    var copied = await copyText(document.getElementById('revealed-key-value').textContent);
+    if (copied) {
+      showCopied(event.currentTarget);
+    } else {
       showError('לא ניתן להעתיק אוטומטית. סמן את המפתח והעתק ידנית.');
     }
   });
