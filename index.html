@@ -95,6 +95,12 @@
               <label>שם / הערה
                 <input id="new-license-label" maxlength="120">
               </label>
+              <label>טלפון
+                <input id="new-license-phone" type="tel" inputmode="tel" maxlength="32" autocomplete="tel">
+              </label>
+              <label>מחיר (₪)
+                <input id="new-license-price" type="number" inputmode="decimal" min="0" max="9999999999.99" step="0.01">
+              </label>
               <label>תוקף עד
                 <input id="new-license-expiry" type="date" required>
               </label>
@@ -128,8 +134,8 @@
             <button id="refresh-button" class="button ghost" type="button">רענון</button>
           </div>
           <form id="license-search-form" class="license-search-form" novalidate>
-            <label>שם או חלק מהמפתח
-              <input id="license-search-query" maxlength="120" autocomplete="off" placeholder="חיפוש לפי שם או חלק מהמפתח">
+            <label>חיפוש בכל פרטי הרישיון
+              <input id="license-search-query" maxlength="254" autocomplete="off" placeholder="שם, מפתח, אימייל, טלפון, מחיר או סטטוס">
             </label>
             <label>תאריך יצירה או תוקף
               <input id="license-search-date" type="date">
@@ -147,6 +153,8 @@
                   <th>סטטוס</th>
                   <th>תוקף</th>
                   <th>אימייל משויך</th>
+                  <th>טלפון</th>
+                  <th>מחיר</th>
                   <th>מכשיר</th>
                   <th></th>
                 </tr>
@@ -219,6 +227,12 @@
         <input id="edit-license-id" type="hidden">
         <label>שם / הערה
           <input id="edit-license-label" maxlength="120">
+        </label>
+        <label>טלפון
+          <input id="edit-license-phone" type="tel" inputmode="tel" maxlength="32" autocomplete="tel">
+        </label>
+        <label>מחיר (₪)
+          <input id="edit-license-price" type="number" inputmode="decimal" min="0" max="9999999999.99" step="0.01">
         </label>
         <label>תוקף עד
           <input id="edit-license-expiry" type="date" required>

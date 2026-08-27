@@ -103,6 +103,18 @@
     return new Intl.DateTimeFormat('he-IL', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
   }
 
+  function formatPrice(value) {
+    if (value === null || value === undefined || value === '') return '—';
+    var price = Number(value);
+    if (!Number.isFinite(price)) return '—';
+    return new Intl.NumberFormat('he-IL', {
+      style: 'currency',
+      currency: 'ILS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(price);
+  }
+
   function dateInputValue(value) {
     if (!value) return '';
     var date = new Date(value);
@@ -288,6 +300,8 @@
         '<td><span class="badge ' + escapeHtml(license.effective_status) + '">' + statusLabel(license.effective_status) + '</span></td>' +
         '<td>' + escapeHtml(localDate(license.expires_at)) + '</td>' +
         '<td>' + escapeHtml(license.bound_email || '—') + '</td>' +
+        '<td dir="ltr">' + escapeHtml(license.phone || '—') + '</td>' +
+        '<td>' + escapeHtml(formatPrice(license.price)) + '</td>' +
         '<td>' + device + '</td>' +
         '<td><button class="button ghost row-button" type="button" data-edit-license="' + escapeHtml(license.id) + '">ניהול</button></td>' +
       '</tr>';
@@ -338,6 +352,8 @@
     document.getElementById('edit-license-id').value = license.id;
     document.getElementById('edit-license-title').textContent = license.label || license.key_hint || 'עריכת רישיון';
     document.getElementById('edit-license-label').value = license.label || '';
+    document.getElementById('edit-license-phone').value = license.phone || '';
+    document.getElementById('edit-license-price').value = license.price == null ? '' : license.price;
     document.getElementById('edit-license-expiry').value = dateInputValue(license.expires_at);
     document.getElementById('edit-license-status').value = license.status === 'disabled' ? 'disabled' : 'active';
     document.getElementById('edit-disconnect').disabled = !license.device_active;
@@ -416,6 +432,8 @@
       setBusy(button, true, 'יוצר…');
       var response = await api('admin_create_license', {
         label: document.getElementById('new-license-label').value.trim(),
+        phone: document.getElementById('new-license-phone').value.trim(),
+        price: document.getElementById('new-license-price').value,
         expires_at: expiresAt
       });
       event.target.reset();
@@ -506,6 +524,8 @@
       await api('admin_update_license', {
         license_id: document.getElementById('edit-license-id').value,
         label: document.getElementById('edit-license-label').value.trim(),
+        phone: document.getElementById('edit-license-phone').value.trim(),
+        price: document.getElementById('edit-license-price').value,
         expires_at: expiresAt,
         status: document.getElementById('edit-license-status').value
       });
