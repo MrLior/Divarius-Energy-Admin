@@ -40,7 +40,7 @@ export function mount(api, showError) {
       tr.ondragover = event => { if (draggedId && draggedId !== item.id) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; } };
       tr.ondrop = async event => { event.preventDefault(); await moveItem(draggedId, item.id); };
       const summary = kind === 'panels' ? `${item.panel_power_w} W · ${item.panel_length_mm}×${item.panel_width_mm} מ״מ` :
-        kind === 'inverters' ? `${item.ac_kw} kW · ${item.mppt_count} MPPT · ${item.hybrid ? 'היברידי' : 'רשת'}` :
+        kind === 'inverters' ? `${item.ac_kw} kW · ${item.dc_architecture === 'optimizer' ? 'אופטימייזרים' : `${item.mppt_count} MPPT`} · ${item.hybrid ? 'היברידי' : 'רשת'}` :
           `${item.nominal_kwh} kWh · ${item.nominal_v} V · ${item.discharge_kw} kW`;
       [`☰ ${index + 1}`, item.manufacturer, item.model_name, summary, item.price_ils == null ? '—' : `${item.price_ils} ₪`, item.active ? 'פעיל' : 'מושבת'].forEach((value,column) => {
         const td = document.createElement('td'); td.textContent = value; tr.append(td);
@@ -107,6 +107,8 @@ export function mount(api, showError) {
     [...common, ...schemas[kind].fields, {key:'active',label:'פעיל וזמין לבחירה בתוסף',type:'boolean'}].forEach(f => {
       const wrap = document.createElement('label'); wrap.textContent = f.label;
       if (f.hybridOnly) wrap.dataset.hybridOnly = 'true';
+      if (f.stringOnly) wrap.dataset.stringOnly = 'true';
+      if (f.optimizerOnly) wrap.dataset.optimizerOnly = 'true';
       let input;
       if (f.type === 'inverter-list') {
         input = document.createElement('select'); input.multiple = true; input.size = 7;
@@ -116,13 +118,13 @@ export function mount(api, showError) {
         const help = document.createElement('small'); help.textContent = available.length ? 'לבחירת כמה דגמים: Ctrl + לחיצה (Mac: Cmd).' : 'יש להוסיף ממיר היברידי למאגר הממירים תחילה.'; wrap.append(help);
       } else if (f.type === 'select') {
         input = document.createElement('select');
-        f.values.forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = v; input.append(opt); });
+        f.values.forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = f.valueLabels?.[v] || v; input.append(opt); });
         input.value = item?.[f.key] ?? f.values[0];
       } else {
         input = document.createElement(f.key === 'notes' || f.key === 'compatibility_source' ? 'textarea' : 'input');
         if (input.tagName === 'INPUT') input.type = f.type === 'boolean' ? 'checkbox' : f.type;
         if (f.type === 'boolean') input.checked = item ? item[f.key] === true : f.key === 'active';
-        else input.value = item?.[f.key] ?? '';
+        else input.value = f.type === 'number-list' && Array.isArray(item?.[f.key]) ? item[f.key].join(',') : item?.[f.key] ?? '';
         if (f.type === 'number') { input.min=f.min; input.max=f.max; input.step=f.integer?'1':'any'; input.inputMode='decimal'; }
         if (f.type === 'text') input.maxLength = ['notes','compatibility_source'].includes(f.key) ? 2000 : 250;
       }
@@ -130,11 +132,16 @@ export function mount(api, showError) {
       input.required = !f.optional && f.type !== 'boolean';
       wrap.append(input); fields.append(wrap);
     });
-    function hybridFields() {
-      const enabled = fields.querySelector('[name="hybrid"]')?.checked;
-      fields.querySelectorAll('[data-hybrid-only]').forEach(wrap => { wrap.hidden = !enabled; wrap.querySelector('input').disabled = !enabled; });
+    function conditionalFields() {
+      const hybrid = fields.querySelector('[name="hybrid"]')?.checked;
+      const optimizer = fields.querySelector('[name="dc_architecture"]')?.value === 'optimizer';
+      fields.querySelectorAll('[data-hybrid-only]').forEach(wrap => { const input=wrap.querySelector('input,select,textarea'); wrap.hidden = !hybrid; input.disabled = !hybrid; input.required = hybrid; });
+      fields.querySelectorAll('[data-string-only]').forEach(wrap => { const input=wrap.querySelector('input,select,textarea'); wrap.hidden = optimizer; input.disabled = optimizer; input.required = !optimizer; });
+      fields.querySelectorAll('[data-optimizer-only]').forEach(wrap => { const input=wrap.querySelector('input,select,textarea'); wrap.hidden = !optimizer; input.disabled = !optimizer; input.required = optimizer; });
     }
-    fields.querySelector('[name="hybrid"]')?.addEventListener('change', hybridFields); hybridFields();
+    fields.querySelector('[name="hybrid"]')?.addEventListener('change', conditionalFields);
+    fields.querySelector('[name="dc_architecture"]')?.addEventListener('change', conditionalFields);
+    conditionalFields();
     dialog.showModal();
   }
   el('equipment-form').onsubmit = async event => {
