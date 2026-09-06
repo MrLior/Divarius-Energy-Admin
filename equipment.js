@@ -15,7 +15,7 @@ export function mount(api, showError) {
   panel.className = 'card equipment-panel'; panel.hidden = true;
   panel.innerHTML = `<div class="section-heading"><h2>מאגר ציוד</h2><button type="button" class="button secondary" id="equipment-refresh">רענון</button></div>
     <nav class="equipment-tabs" id="equipment-kinds" aria-label="סוג ציוד"></nav>
-    <div class="equipment-tools"><label>חיפוש במאגר<input id="equipment-search" type="search" placeholder="יצרן, דגם או ערך טכני"></label><button type="button" class="button primary" id="equipment-add">הוסף ציוד</button></div>
+    <div class="equipment-tools"><label>חיפוש במאגר<input id="equipment-search" type="search" placeholder="יצרן, דגם או ערך טכני"></label><button type="button" class="button secondary" id="equipment-import">ייבוא קובץ</button><input id="equipment-import-file" type="file" accept="application/json,.json" hidden><button type="button" class="button primary" id="equipment-add">הוסף ציוד</button></div>
     <p class="muted">אפשר לגרור שורה מעל או מתחת לשורה אחרת כדי לשנות את סדר ההצגה בתוסף.</p>
     <p id="equipment-status" role="status"></p><div class="equipment-table-wrap"><table><thead><tr><th>סדר</th><th>יצרן</th><th>דגם</th><th>נתונים</th><th>מחיר</th><th>מצב</th><th>פעולות</th></tr></thead><tbody id="equipment-rows"></tbody></table></div>`;
   dashboard.append(panel);
@@ -84,6 +84,28 @@ export function mount(api, showError) {
       items = loaded; render();
     } catch (error) { el('equipment-status').textContent = error.message; showError(error.message); }
     finally { loading = false; el('equipment-add').disabled = false; }
+  }
+  async function importFile(file) {
+    if (!file || loading) return;
+    el('equipment-status').textContent = 'קורא ומייבא את קובץ הציוד…';
+    el('equipment-import').disabled = true;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const imported = Array.isArray(parsed) ? parsed : parsed.items;
+      if (!Array.isArray(imported) || !imported.length) throw new Error('הקובץ אינו כולל רשימת ציוד תקינה.');
+      const result = await api('admin_equipment_import', {items: imported});
+      const failed = Array.isArray(result.failed) ? result.failed : [];
+      const message = `הייבוא הסתיים: ${result.created || 0} נוספו, ${result.skipped || 0} כבר היו במאגר ודולגו, ${failed.length} נכשלו.`;
+      await load();
+      el('equipment-status').textContent = message;
+      if (failed.length) showError(message + ' ' + failed.slice(0, 5).map(row => `שורה ${row.index}: ${row.message}`).join(' | '));
+    } catch (error) {
+      const message = error instanceof SyntaxError ? 'קובץ ה־JSON אינו תקין.' : error.message;
+      el('equipment-status').textContent = message; showError(message);
+    } finally {
+      el('equipment-import').disabled = false;
+      el('equipment-import-file').value = '';
+    }
   }
   async function deleteItem(item, button) {
     if (!item || !window.confirm(`למחוק לצמיתות את ${label(item)} מהמאגר?`)) return;
@@ -172,6 +194,8 @@ export function mount(api, showError) {
     el('equipment-kinds').append(button);
   });
   el('equipment-add').onclick=()=>open(null);
+  el('equipment-import').onclick=()=>el('equipment-import-file').click();
+  el('equipment-import-file').onchange=event=>importFile(event.target.files?.[0]);
   el('equipment-search').oninput=render;
   el('equipment-refresh').onclick=load;
 }
