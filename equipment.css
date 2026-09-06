@@ -10,4 +10,6 @@
 .equipment-fields [hidden],.equipment-panel[hidden]{display:none!important}
 #equipment-form-error{color:#ae1830}#equipment-help{line-height:1.7}
 .equipment-delete{margin-inline-start:8px}
+.equipment-draggable{cursor:grab}.equipment-draggable:active{cursor:grabbing}.equipment-draggable.is-dragging{opacity:.45}
+.equipment-order{font-weight:700;white-space:nowrap;color:#31556f;user-select:none}
 @media(max-width:650px){.equipment-fields{grid-template-columns:1fr}}

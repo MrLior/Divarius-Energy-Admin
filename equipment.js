@@ -16,26 +16,35 @@ export function mount(api, showError) {
   panel.innerHTML = `<div class="section-heading"><h2>מאגר ציוד</h2><button type="button" class="button secondary" id="equipment-refresh">רענון</button></div>
     <nav class="equipment-tabs" id="equipment-kinds" aria-label="סוג ציוד"></nav>
     <div class="equipment-tools"><label>חיפוש במאגר<input id="equipment-search" type="search" placeholder="יצרן, דגם או ערך טכני"></label><button type="button" class="button primary" id="equipment-add">הוסף ציוד</button></div>
-    <p id="equipment-status" role="status"></p><div class="equipment-table-wrap"><table><thead><tr><th>יצרן</th><th>דגם</th><th>נתונים</th><th>מחיר</th><th>מצב</th><th>פעולות</th></tr></thead><tbody id="equipment-rows"></tbody></table></div>`;
+    <p class="muted">אפשר לגרור שורה מעל או מתחת לשורה אחרת כדי לשנות את סדר ההצגה בתוסף.</p>
+    <p id="equipment-status" role="status"></p><div class="equipment-table-wrap"><table><thead><tr><th>סדר</th><th>יצרן</th><th>דגם</th><th>נתונים</th><th>מחיר</th><th>מצב</th><th>פעולות</th></tr></thead><tbody id="equipment-rows"></tbody></table></div>`;
   dashboard.append(panel);
   const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = './equipment.css'; document.head.append(style);
   const dialog = document.createElement('dialog'); dialog.className = 'dialog equipment-dialog';
   dialog.innerHTML = '<form id="equipment-form"><h2 id="equipment-title"></h2><p id="equipment-help" class="muted"></p><div id="equipment-fields" class="equipment-fields"></div><p id="equipment-form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="button danger" id="equipment-delete-dialog">מחק ציוד</button><button type="button" class="button secondary" id="equipment-cancel">ביטול</button><button type="submit" class="button primary">שמור ציוד</button></div></form>';
   document.body.append(dialog);
-  let items = [], kind = 'panels', editing = null, loading = false;
+  let items = [], kind = 'panels', editing = null, loading = false, draggedId = null;
   const el = id => document.getElementById(id);
   const label = item => item.manufacturer + ' · ' + item.model_name;
   function render() {
     const query = el('equipment-search').value.trim().toLocaleLowerCase();
     const shown = items.filter(item => item.kind === kind && JSON.stringify(item).toLocaleLowerCase().includes(query));
     el('equipment-rows').replaceChildren();
-    shown.sort((a,b) => label(a).localeCompare(label(b), 'he')).forEach(item => {
+    shown.sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0) || label(a).localeCompare(label(b), 'he')).forEach((item,index) => {
       const tr = document.createElement('tr');
+      tr.dataset.id = item.id;
+      tr.draggable = query === '';
+      tr.className = query === '' ? 'equipment-draggable' : '';
+      tr.ondragstart = event => { draggedId = item.id; tr.classList.add('is-dragging'); event.dataTransfer.effectAllowed = 'move'; };
+      tr.ondragend = () => { draggedId = null; tr.classList.remove('is-dragging'); };
+      tr.ondragover = event => { if (draggedId && draggedId !== item.id) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; } };
+      tr.ondrop = async event => { event.preventDefault(); await moveItem(draggedId, item.id); };
       const summary = kind === 'panels' ? `${item.panel_power_w} W · ${item.panel_length_mm}×${item.panel_width_mm} מ״מ` :
         kind === 'inverters' ? `${item.ac_kw} kW · ${item.mppt_count} MPPT · ${item.hybrid ? 'היברידי' : 'רשת'}` :
           `${item.nominal_kwh} kWh · ${item.nominal_v} V · ${item.discharge_kw} kW`;
-      [item.manufacturer, item.model_name, summary, item.price_ils == null ? '—' : `${item.price_ils} ₪`, item.active ? 'פעיל' : 'מושבת'].forEach(value => {
+      [`☰ ${index + 1}`, item.manufacturer, item.model_name, summary, item.price_ils == null ? '—' : `${item.price_ils} ₪`, item.active ? 'פעיל' : 'מושבת'].forEach((value,column) => {
         const td = document.createElement('td'); td.textContent = value; tr.append(td);
+        if (column === 0) td.className = 'equipment-order';
       });
       const td = document.createElement('td'), button = document.createElement('button');
       button.type = 'button'; button.className = 'button secondary'; button.textContent = 'עריכה';
@@ -46,6 +55,21 @@ export function mount(api, showError) {
       td.append(remove); tr.append(td); el('equipment-rows').append(tr);
     });
     el('equipment-status').textContent = shown.length ? `${shown.length} פריטים מוצגים` : 'אין פריטים להצגה. אפשר להוסיף דגם חדש.';
+  }
+  async function moveItem(sourceId, targetId) {
+    if (!sourceId || !targetId || sourceId === targetId || loading || el('equipment-search').value.trim()) return;
+    const ordered = items.filter(item => item.kind === kind)
+      .sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0) || label(a).localeCompare(label(b), 'he'));
+    const sourceIndex = ordered.findIndex(item => item.id === sourceId);
+    const targetIndex = ordered.findIndex(item => item.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    const [moved] = ordered.splice(sourceIndex, 1); ordered.splice(targetIndex, 0, moved);
+    ordered.forEach((item,index) => { item.sort_order = index + 1; }); render();
+    el('equipment-status').textContent = 'שומר את סדר הציוד…';
+    try {
+      await api('admin_equipment_reorder', {kind, ordered_ids:ordered.map(item => item.id)});
+      await load();
+    } catch (error) { showError(error.message); await load(); }
   }
   async function load() {
     if (loading) return;
