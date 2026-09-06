@@ -20,7 +20,7 @@ export function mount(api, showError) {
   dashboard.append(panel);
   const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = './equipment.css'; document.head.append(style);
   const dialog = document.createElement('dialog'); dialog.className = 'dialog equipment-dialog';
-  dialog.innerHTML = '<form id="equipment-form"><h2 id="equipment-title"></h2><p id="equipment-help" class="muted"></p><div id="equipment-fields" class="equipment-fields"></div><p id="equipment-form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="button secondary" id="equipment-cancel">ביטול</button><button type="submit" class="button primary">שמור ציוד</button></div></form>';
+  dialog.innerHTML = '<form id="equipment-form"><h2 id="equipment-title"></h2><p id="equipment-help" class="muted"></p><div id="equipment-fields" class="equipment-fields"></div><p id="equipment-form-error" role="alert"></p><div class="dialog-actions"><button type="button" class="button danger" id="equipment-delete-dialog">מחק ציוד</button><button type="button" class="button secondary" id="equipment-cancel">ביטול</button><button type="submit" class="button primary">שמור ציוד</button></div></form>';
   document.body.append(dialog);
   let items = [], kind = 'panels', editing = null, loading = false;
   const el = id => document.getElementById(id);
@@ -42,12 +42,7 @@ export function mount(api, showError) {
       button.onclick = () => open(item); td.append(button);
       const remove = document.createElement('button');
       remove.type = 'button'; remove.className = 'button danger equipment-delete'; remove.textContent = 'מחיקה';
-      remove.onclick = async () => {
-        if (!window.confirm(`למחוק לצמיתות את ${label(item)} מהמאגר?`)) return;
-        remove.disabled = true;
-        try { await api('admin_equipment_delete', {id:item.id, kind:item.kind, revision:item.revision}); await load(); }
-        catch (error) { showError(error.message); remove.disabled = false; }
-      };
+      remove.onclick = () => deleteItem(item, remove);
       td.append(remove); tr.append(td); el('equipment-rows').append(tr);
     });
     el('equipment-status').textContent = shown.length ? `${shown.length} פריטים מוצגים` : 'אין פריטים להצגה. אפשר להוסיף דגם חדש.';
@@ -66,10 +61,23 @@ export function mount(api, showError) {
     } catch (error) { el('equipment-status').textContent = error.message; showError(error.message); }
     finally { loading = false; el('equipment-add').disabled = false; }
   }
+  async function deleteItem(item, button) {
+    if (!item || !window.confirm(`למחוק לצמיתות את ${label(item)} מהמאגר?`)) return;
+    if (button) button.disabled = true;
+    try {
+      await api('admin_equipment_delete', {id:item.id, kind:item.kind, revision:item.revision});
+      if (dialog.open) dialog.close();
+      await load();
+    } catch (error) {
+      showError(error.message);
+      if (button) button.disabled = false;
+    }
+  }
   function open(item) {
     editing = item;
     el('equipment-title').textContent = (item ? 'עריכת ' : 'הוספת ') + schemas[kind].label;
     el('equipment-form-error').textContent = '';
+    el('equipment-delete-dialog').hidden = !item;
     el('equipment-help').textContent = 'הטופס כולל רק את הנתונים הנדרשים לבחירה ולחישוב בתוסף.';
     const fields = el('equipment-fields'); fields.replaceChildren();
     [...common, ...schemas[kind].fields, {key:'active',label:'פעיל וזמין לבחירה בתוסף',type:'boolean'}].forEach(f => {
@@ -119,6 +127,7 @@ export function mount(api, showError) {
     finally { button.disabled = false; }
   };
   el('equipment-cancel').onclick = () => dialog.close();
+  el('equipment-delete-dialog').onclick = () => deleteItem(editing, el('equipment-delete-dialog'));
   [...tabs.children].forEach((button,index) => { button.onclick = () => {
     licenseNodes.forEach(node => { node.hidden = index !== 0; }); panel.hidden = index !== 1;
     [...tabs.children].forEach((tab,i) => {tab.className = 'button ' + (i===index?'primary':'secondary'); tab.setAttribute('aria-pressed',String(i===index));});
