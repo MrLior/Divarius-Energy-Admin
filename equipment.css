@@ -1,0 +1,12 @@
+.equipment-tabs,.equipment-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:18px 0}
+.equipment-tools label{flex:1;min-width:200px}.equipment-tools button{align-self:flex-end}
+.equipment-table-wrap{overflow:auto}.equipment-table-wrap table{width:100%;text-align:right;border-collapse:collapse}
+.equipment-table-wrap td,.equipment-table-wrap th{padding:14px 10px;border-bottom:1px solid #dbe3ee}
+.equipment-dialog{width:min(900px,95vw);max-width:95vw;max-height:90vh;overflow:auto}
+.equipment-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.equipment-fields label{display:flex;flex-direction:column;gap:7px}
+.equipment-fields input[type=checkbox]{width:22px;height:22px;align-self:flex-start}
+.equipment-fields select[multiple]{height:160px}.equipment-fields textarea{min-height:80px;resize:vertical}
+.equipment-fields [hidden],.equipment-panel[hidden]{display:none!important}
+#equipment-form-error{color:#ae1830}#equipment-help{line-height:1.7}
+@media(max-width:650px){.equipment-fields{grid-template-columns:1fr}}

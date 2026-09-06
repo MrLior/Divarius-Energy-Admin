@@ -250,6 +250,9 @@
       renderLicenses(state.licenseList, false);
       renderAudit(data.events || []);
       showView('view-dashboard');
+      import('./equipment.js').then(function (equipment) {
+        equipment.mount(api, showError);
+      }).catch(function () { showError('לא ניתן לטעון את לשונית מאגר הציוד. ודא שכל קובצי הפורטל הועלו.'); });
     } catch (error) {
       if (error.code === 'mfa_required') {
         await decideMfa();
