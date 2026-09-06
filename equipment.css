@@ -9,4 +9,5 @@
 .equipment-fields select[multiple]{height:160px}.equipment-fields textarea{min-height:80px;resize:vertical}
 .equipment-fields [hidden],.equipment-panel[hidden]{display:none!important}
 #equipment-form-error{color:#ae1830}#equipment-help{line-height:1.7}
+.equipment-delete{margin-inline-start:8px}
 @media(max-width:650px){.equipment-fields{grid-template-columns:1fr}}

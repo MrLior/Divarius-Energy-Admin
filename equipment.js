@@ -39,7 +39,16 @@ export function mount(api, showError) {
       });
       const td = document.createElement('td'), button = document.createElement('button');
       button.type = 'button'; button.className = 'button secondary'; button.textContent = 'עריכה';
-      button.onclick = () => open(item); td.append(button); tr.append(td); el('equipment-rows').append(tr);
+      button.onclick = () => open(item); td.append(button);
+      const remove = document.createElement('button');
+      remove.type = 'button'; remove.className = 'button danger equipment-delete'; remove.textContent = 'מחיקה';
+      remove.onclick = async () => {
+        if (!window.confirm(`למחוק לצמיתות את ${label(item)} מהמאגר?`)) return;
+        remove.disabled = true;
+        try { await api('admin_equipment_delete', {id:item.id, kind:item.kind, revision:item.revision}); await load(); }
+        catch (error) { showError(error.message); remove.disabled = false; }
+      };
+      td.append(remove); tr.append(td); el('equipment-rows').append(tr);
     });
     el('equipment-status').textContent = shown.length ? `${shown.length} פריטים מוצגים` : 'אין פריטים להצגה. אפשר להוסיף דגם חדש.';
   }
@@ -61,10 +70,7 @@ export function mount(api, showError) {
     editing = item;
     el('equipment-title').textContent = (item ? 'עריכת ' : 'הוספת ') + schemas[kind].label;
     el('equipment-form-error').textContent = '';
-    el('equipment-help').textContent = kind === 'batteries' ?
-      'כל רשומה היא בנק / מגדל מלא בתצורה מוגדרת, כולל BMS. לכל מספר מודולים שונה יש ליצור תצורה נפרדת. סמן רק ממירים שהיצרן מאשר לתצורה זו; ציין תנאי קושחה ואביזרים באסמכתה.' : kind === 'inverters' ?
-      'הזן נתוני יצרן. אם כניסות ה־MPPT שונות, הזן את המגבלות הנמוכות ביותר המשותפות לכולן. נתוני אגירה הם הסכום המרבי לכל הממיר. מספר ממירים בגיבוי חייב להיות מאושר על ידי היצרן.' :
-      'הזן מידות ונתונים חשמליים מהמפרט. מקדם Vmp אינו מקדם ההספק Pmax — נדרש הערך המתאים למתח.';
+    el('equipment-help').textContent = 'הטופס כולל רק את הנתונים הנדרשים לבחירה ולחישוב בתוסף.';
     const fields = el('equipment-fields'); fields.replaceChildren();
     [...common, ...schemas[kind].fields, {key:'active',label:'פעיל וזמין לבחירה בתוסף',type:'boolean'}].forEach(f => {
       const wrap = document.createElement('label'); wrap.textContent = f.label;
